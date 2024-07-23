@@ -1,5 +1,5 @@
 import torch
-from model import *
+from model.model import *
 
 if __name__ == "__main__":
     b = 32
