@@ -8,6 +8,7 @@ class AttentionHead(nn.Module):
         self.weighted_Q = nn.Linear(embd_size, head_size)
         self.weighted_K = nn.Linear(embd_size, head_size)
         self.weighted_V = nn.Linear(embd_size, head_size)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         # input size: (B, T, embd_size)
@@ -17,6 +18,17 @@ class AttentionHead(nn.Module):
 
         V = self.weighted_V(x)  # (B, T, head_size)
         output = attention_matrix @ V
+        output = self.dropout(output)
+        return output
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, embd_size, head_size=8, n_head=4, dropout=0.1):
+        super().__init__()
+        self.heads = torch.nn.ModuleList([AttentionHead(embd_size, head_size, dropout=dropout) 
+                                          for _ in range(n_head)])  # use ModuleList to support nn.Module.to() method
+
+    def forward(self, x):
+        output = torch.cat([head(x) for head in self.heads], dim=-1)
         return output
 
 if __name__ == "__main__":
@@ -25,6 +37,8 @@ if __name__ == "__main__":
     embd_size = 64
     device = 'cuda'
     x = torch.ones(b, t, embd_size).to(device)
-    head = AttentionHead(embd_size).to(device)
-    y = head(x) 
+    # head = AttentionHead(embd_size).to(device)
+    # y = head(x) 
+    attention = MultiHeadAttention(embd_size).to(device)
+    y = attention(x)
     print(x.shape, y.shape)
