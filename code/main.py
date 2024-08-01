@@ -1,5 +1,5 @@
 import torch
-from model.model import *
+from model.attention import *
 
 if __name__ == "__main__":
     b = 32
@@ -7,6 +7,6 @@ if __name__ == "__main__":
     embd_size = 64
     device = 'cuda'
     x = torch.ones(b, t, embd_size).to(device)
-    head = AttentionHead(embd_size).to(device)
-    y = head(x) 
+    attention = MultiHeadAttention(embd_size, 8).to(device)
+    y = attention(x, x, x) 
     print(x.shape, y.shape)
