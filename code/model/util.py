@@ -4,8 +4,25 @@ import torch.nn.functional as F
 
 '''
 class:
-    LayerNorm(self, n_embd, eps)
+    FeedForward(self, d_model, d_hidden, dropout)
+    LayerNorm(self, d_model, eps)
 '''
+
+# two linear layers with one relu
+class FeedForward(nn.Module):
+    def __init__(self, d_model, d_hidden, dropout=0.1):
+        super().__init__()
+        self.linear1 = nn.Linear(d_model, d_hidden)
+        self.linear2 = nn.Linear(d_hidden, d_model)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.relu(x)
+        x = self.linear2(x)
+        x = self.dropout(x)
+        return x
 
 # This LayerNorm is rewrited for learning
 
@@ -14,10 +31,10 @@ class:
 # and False for denominator equals N
 
 class LayerNorm(nn.Module):
-    def __init__(self, n_embd, eps):
+    def __init__(self, d_model, eps):
         super().__init__()
-        self.gamma = nn.Parameter(torch.ones(n_embd))
-        self.beta = nn.Parameter(torch.zeros(n_embd))
+        self.gamma = nn.Parameter(torch.ones(d_model))
+        self.beta = nn.Parameter(torch.zeros(d_model))
         self.eps = eps
 
     def forward(self, x: torch.tensor):
