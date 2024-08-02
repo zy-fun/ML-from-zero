@@ -28,12 +28,10 @@ device = cfg['device']
 
 if __name__ == "__main__":
     enc = torch.randint(0, vocab_size, (batch_size, seq_len)).to(device)
-    print(enc.shape)
-    encoder = Encoder(N, vocab_size, d_model, d_ff, num_head, dropout=dropout).to(device)
-    enc = encoder(enc)
-    decoder = Decoder(N, vocab_size, d_model, d_ff, num_head, dropout=dropout).to(device)
     data = torch.randint(0, vocab_size, (batch_size, seq_len + 1)).to(device)
     x, y = data[:, :seq_len], data[:, 1:]
-    print(x.shape, y.shape)
-    dec = decoder(x, enc)
-    print(enc.shape)
+
+    model = Transformer(N, vocab_size, d_model, d_ff, num_head, dropout=dropout).to(device)
+
+    logits = model(x, enc)
+    print(logits.shape)

@@ -6,11 +6,13 @@ from model.attention import *
 
 """
 class:
-    EncoderBlock(self, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5)
-    DncoderBlock(self, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5)
+    EncoderBlock(self, d_model, d_ff, num_head, dropout=0.1, eps=1e-5)
+    DncoderBlock(self, d_model, d_ff, num_head, dropout=0.1, eps=1e-5)
 
-    Encoder(self, N, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5)
-    Decoder(self, N, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5)
+    Encoder(self, N, vocab_size, d_model, d_ff, num_head, dropout=0.1, eps=1e-5)
+    Decoder(self, N, vocab_size, d_model, d_ff, num_head, dropout=0.1, eps=1e-5)
+
+    Transformer(self, N, vocab_size, d_model, d_ff, num_head, dropout=0.1, eps=1e-5)
 """
 
 # the dropout layer setting is a bit confusing
@@ -18,10 +20,10 @@ class EncoderBlock(nn.Module):
     """
         a block of transformer encoder
     """
-    def __init__(self, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5):
+    def __init__(self, d_model, d_ff, num_head, dropout=0.1, eps=1e-5):
         super().__init__()
         self.attention = MultiHeadAttention(d_model, num_head)
-        self.ffn = FeedForward(d_model, d_hidden)
+        self.ffn = FeedForward(d_model, d_ff)
         self.norm1 = LayerNorm(d_model, eps)
         self.norm2 = LayerNorm(d_model, eps)
         self.dropout1 = nn.Dropout(dropout)
@@ -40,7 +42,7 @@ class DecoderBlock(nn.Module):
     """
         a block of transformer decoder
     """
-    def __init__(self, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5):
+    def __init__(self, d_model, d_ff, num_head, dropout=0.1, eps=1e-5):
         super().__init__()
         self.attention1 = MultiHeadAttention(d_model, num_head)
         self.dropout1 = nn.Dropout(dropout)
@@ -50,7 +52,7 @@ class DecoderBlock(nn.Module):
         self.dropout2 = nn.Dropout(dropout)
         self.norm2 = LayerNorm(d_model, eps)
 
-        self.ffn = FeedForward(d_model, d_hidden)
+        self.ffn = FeedForward(d_model, d_ff)
         self.dropout3 = nn.Dropout(dropout)
         self.norm3 = LayerNorm(d_model, eps)
 
@@ -71,12 +73,12 @@ class Encoder(nn.Module):
     """
         Transformer's encoder
     """
-    def __init__(self, N, vocab_size, d_model, d_hidden, num_head, max_seq_len=500, dropout=0.1, eps=1e-5):
+    def __init__(self, N, vocab_size, d_model, d_ff, num_head, max_seq_len=500, dropout=0.1, eps=1e-5):
         super().__init__()
         self.token_emb = nn.Embedding(vocab_size, d_model)
         self.pos_emb = nn.Embedding(max_seq_len, d_model)
         self.blocks = nn.ModuleList([
-            EncoderBlock(d_model, d_hidden, num_head, dropout, eps) for _ in range(N)
+            EncoderBlock(d_model, d_ff, num_head, dropout, eps) for _ in range(N)
         ])
 
     def forward(self, x):
@@ -95,12 +97,12 @@ class Decoder(nn.Module):
     """
         Transformer's decoder
     """
-    def __init__(self, N, vocab_size, d_model, d_hidden, num_head, max_seq_len=500, dropout=0.1, eps=1e-5):
+    def __init__(self, N, vocab_size, d_model, d_ff, num_head, max_seq_len=500, dropout=0.1, eps=1e-5):
         super().__init__()
         self.token_emb = nn.Embedding(vocab_size, d_model)
         self.pos_emb = nn.Embedding(max_seq_len, d_model)
         self.blocks = nn.ModuleList([
-            DecoderBlock(d_model, d_hidden, num_head, dropout, eps) for _ in range(N)
+            DecoderBlock(d_model, d_ff, num_head, dropout, eps) for _ in range(N)
         ])
         self.linear = nn.Linear(d_model, vocab_size)
 
@@ -117,13 +119,35 @@ class Decoder(nn.Module):
         logits = self.linear(x) 
 
         return logits
+    
 
 class Transformer(nn.Module):
-    def __init__(self):
-        pass
+    """
+        a implemention of simplified Transformer
+    """
+    def __init__(self, N, vocab_size, d_model, d_ff, num_head, max_seq_len=500, dropout=0.1, eps=1e-5):
+        super().__init__()
+        self.encoder = Encoder(N=N, 
+                               vocab_size=vocab_size, 
+                               d_model=d_model, 
+                               d_ff=d_ff,
+                               num_head=num_head,
+                               max_seq_len=max_seq_len,
+                               dropout=dropout,
+                               eps=eps)
+        self.decoder = Decoder(N=N, 
+                               vocab_size=vocab_size, 
+                               d_model=d_model, 
+                               d_ff=d_ff,
+                               num_head=num_head,
+                               max_seq_len=max_seq_len,
+                               dropout=dropout,
+                               eps=eps)
 
-    def forward(self):
-        pass
+    def forward(self, x, enc, mask=None):
+        enc = self.encoder(enc)
+        logits = self.decoder(x, enc, mask=mask)
+        return logits
 
 if __name__ == "__main__":
     print("main function of transformer.py")
