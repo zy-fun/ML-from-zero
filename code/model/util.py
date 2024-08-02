@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 '''
 class:
-    FeedForward(self, d_model, d_hidden, dropout)
+    FeedForward(self, d_model, d_hidden)
     LayerNorm(self, d_model, eps)
 '''
 
@@ -25,15 +25,15 @@ class FeedForward(nn.Module):
         x = self.linear2(x)
         # x = self.dropout(x)
         return x
+    
 
 # This LayerNorm is rewrited for learning
 
 # Note: 'unbiased' parameter of tensor.var(): 
 # True for denominator equals N-1
 # and False for denominator equals N
-
 class LayerNorm(nn.Module):
-    def __init__(self, d_model, eps):
+    def __init__(self, d_model, eps=1e-5):
         super().__init__()
         self.gamma = nn.Parameter(torch.ones(d_model))
         self.beta = nn.Parameter(torch.zeros(d_model))

@@ -4,17 +4,21 @@ import torch.nn.functional as F
 
 """
 class:
-    MultiHeadAttention(d_model, num_head, dropout)
+    MultiHeadAttention(self, d_model, num_head)
 """
 
 # To do:
 # mask waits to implement
+# only the first attention layer of decoder block uses mask
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, num_head):
         super().__init__()
         self.num_head = num_head
         assert d_model % num_head == 0
         self.head_size = d_model // num_head
+        
+        # projection dimension d_k for W^q, W^k and d_v for W^v
+        # the setting is d_k = d_v = d_model / num_head in original paper
         self.w_q = nn.Linear(d_model, d_model)
         self.w_k = nn.Linear(d_model, d_model)
         self.w_v = nn.Linear(d_model, d_model)
