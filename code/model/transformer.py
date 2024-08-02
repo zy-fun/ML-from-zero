@@ -23,8 +23,8 @@ class EncoderBlock(nn.Module):
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
 
-    def forward(self, x, mask):
-        out = x + self.dropout1(self.attention(x, x, x, mask))
+    def forward(self, x):
+        out = x + self.dropout1(self.attention(x, x, x))
         out = self.norm1(out)
 
         out = out + self.dropout2(self.ffn(out))
@@ -68,18 +68,35 @@ class Encoder(nn.Module):
         for block in self.blocks:
             x = block(x)
         return x
-    
+
+# CrossEntropy of torch includes softmax operation
+# so Decoder implemented here won't need softmax layer
 class Decoder(nn.Module):
-    def __init__(self, N, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5):
+    def __init__(self, N, vocab_size, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5):
         super().__init__()
+        self.token_emb = nn.Embedding(vocab_size, d_model)
         self.blocks = nn.ModuleList([
             DecoderBlock(d_model, d_hidden, num_head, dropout, eps) for _ in range(N)
         ])
+        self.linear = nn.Linear(d_model, vocab_size)
 
     def forward(self, x, enc, mask=None):
+        # x: (B, T, 1) or (B, T)?
+        # enc: (B, T, C)
         for block in self.blocks:
             x = block(x, enc, mask=mask)
-        return x
+
+        # logits: (B, T, V)
+        logits = self.linear(x) 
+
+        return logits
+
+class Transformer(nn.Module):
+    def __init__(self):
+        pass
+
+    def forward(self):
+        pass
 
 if __name__ == "__main__":
     print("main function of transformer.py")
