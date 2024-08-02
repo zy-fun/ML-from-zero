@@ -8,12 +8,16 @@ from model.attention import *
 class:
     EncoderBlock(self, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5)
     DncoderBlock(self, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5)
+
     Encoder(self, N, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5)
     Decoder(self, N, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5)
 """
 
 # the dropout layer setting is a bit confusing
 class EncoderBlock(nn.Module):
+    """
+        a block of transformer encoder
+    """
     def __init__(self, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5):
         super().__init__()
         self.attention = MultiHeadAttention(d_model, num_head)
@@ -31,7 +35,11 @@ class EncoderBlock(nn.Module):
         out = self.norm2(out)
         return out
 
+
 class DecoderBlock(nn.Module):
+    """
+        a block of transformer decoder
+    """
     def __init__(self, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5):
         super().__init__()
         self.attention1 = MultiHeadAttention(d_model, num_head)
@@ -56,32 +64,51 @@ class DecoderBlock(nn.Module):
         x = x + self.dropout3(self.ffn(x))
         x = self.norm3(x)
         return x
-    
+
+
+# the pos_emb here is different of the original paper, I replace it with a simple nn.Embedding(learnable)
 class Encoder(nn.Module):
-    def __init__(self, N, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5):
+    """
+        Transformer's encoder
+    """
+    def __init__(self, N, vocab_size, d_model, d_hidden, num_head, max_seq_len=500, dropout=0.1, eps=1e-5):
         super().__init__()
+        self.token_emb = nn.Embedding(vocab_size, d_model)
+        self.pos_emb = nn.Embedding(max_seq_len, d_model)
         self.blocks = nn.ModuleList([
             EncoderBlock(d_model, d_hidden, num_head, dropout, eps) for _ in range(N)
         ])
 
     def forward(self, x):
+        # x: (B, T)
+        B, T = x.shape
+        x = self.token_emb(x) + self.pos_emb(torch.arange(T, device=x.device))
+
         for block in self.blocks:
             x = block(x)
         return x
 
+
 # CrossEntropy of torch includes softmax operation
 # so Decoder implemented here won't need softmax layer
 class Decoder(nn.Module):
-    def __init__(self, N, vocab_size, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5):
+    """
+        Transformer's decoder
+    """
+    def __init__(self, N, vocab_size, d_model, d_hidden, num_head, max_seq_len=500, dropout=0.1, eps=1e-5):
         super().__init__()
         self.token_emb = nn.Embedding(vocab_size, d_model)
+        self.pos_emb = nn.Embedding(max_seq_len, d_model)
         self.blocks = nn.ModuleList([
             DecoderBlock(d_model, d_hidden, num_head, dropout, eps) for _ in range(N)
         ])
         self.linear = nn.Linear(d_model, vocab_size)
 
     def forward(self, x, enc, mask=None):
-        # x: (B, T, 1) or (B, T)?
+        # x: (B, T)
+        B, T = x.shape
+        x = self.token_emb(x) + self.pos_emb(torch.arange(T, device=x.device))
+        
         # enc: (B, T, C)
         for block in self.blocks:
             x = block(x, enc, mask=mask)
