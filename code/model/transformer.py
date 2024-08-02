@@ -123,7 +123,7 @@ class Decoder(nn.Module):
 
 class Transformer(nn.Module):
     """
-        a implemention of simplified Transformer
+        an implemention of simplified Transformer
     """
     def __init__(self, N, vocab_size, d_model, d_ff, num_head, max_seq_len=500, dropout=0.1, eps=1e-5):
         super().__init__()

@@ -11,6 +11,9 @@ class:
 # mask waits to implement
 # only the first attention layer of decoder block uses mask
 class MultiHeadAttention(nn.Module):
+    """
+        implemention of MultiHeadAttention in Transformer
+    """
     def __init__(self, d_model, num_head):
         super().__init__()
         self.num_head = num_head

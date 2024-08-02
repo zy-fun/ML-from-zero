@@ -12,6 +12,9 @@ class:
 # linear(x) equals x @ linear.weight.T + linear.bias
 # I decide to discard the dropout operation in ffn
 class FeedForward(nn.Module):
+    """
+        FFN of transformer, maybe it shouldn't be in util.py
+    """
     def __init__(self, d_model, d_hidden):
         super().__init__()
         self.linear1 = nn.Linear(d_model, d_hidden)
@@ -33,6 +36,9 @@ class FeedForward(nn.Module):
 # True for denominator equals N-1
 # and False for denominator equals N
 class LayerNorm(nn.Module):
+    """
+        an implemention of layernorm 
+    """
     def __init__(self, d_model, eps=1e-5):
         super().__init__()
         self.gamma = nn.Parameter(torch.ones(d_model))
