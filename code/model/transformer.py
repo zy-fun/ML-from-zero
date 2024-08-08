@@ -110,7 +110,7 @@ class Decoder(nn.Module):
         # x: (B, T)
         B, T = x.shape
         x = self.token_emb(x) + self.pos_emb(torch.arange(T, device=x.device))
-        
+
         # enc: (B, T, C)
         for block in self.blocks:
             x = block(x, enc, mask=mask)
@@ -151,4 +151,20 @@ class Transformer(nn.Module):
 
 if __name__ == "__main__":
     print("main function of transformer.py")
-    pass
+    N = 6
+    batch_size = 4
+    seq_len = 100
+    vocab_size = 1000
+    d_model = 512
+    d_ff = 2048
+    num_head = 8
+    dropout = 0.1
+    device = 'cuda'
+
+    enc = torch.randint(0, vocab_size, (batch_size, seq_len)).to(device)
+    data = torch.randint(0, vocab_size, (batch_size, seq_len + 1)).to(device)
+    x, y = data[:, :seq_len], data[:, 1:]
+    model = Transformer(N, vocab_size, d_model, d_ff, num_head, dropout=dropout).to(device)
+
+    logits = model(x, enc)
+    print(logits.shape)
