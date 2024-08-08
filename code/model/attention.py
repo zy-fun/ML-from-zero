@@ -44,7 +44,7 @@ class MultiHeadAttention(nn.Module):
 
         # apply mask
         if mask is not None:
-            pass
+            score = score.masked_fill(mask, -9999)
         
         # normalize attention score matrix for each row (dim= -1)
         score = self.softmax(score)
