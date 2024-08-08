@@ -5,10 +5,6 @@ import torch.nn.functional as F
 """
 class:
     MultiHeadAttention(self, d_model, num_head)
-
-function:
-    get_padding_mask(self, data, padding)
-    
 """
 
 # To do:
@@ -57,18 +53,6 @@ class MultiHeadAttention(nn.Module):
         output = output.transpose(1, 2).reshape(-1, seq_len, self.num_head * self.head_size)    # (batch_size, seq_len, d_model)
         
         return output
-    
-def get_padding_mask(self, data, padding=-1):
-    """
-        generate a mask to mask padding elements
-        input:  [[1, 2, 3, -1, -1, -1],
-                 [4, 1, -1, -1, -1, -1],
-                 [5, 1, 2, 4, 1, -1]]
-        output: [[F, F, F, T, T, T],
-                 [F, F, T, T, T, T],
-                 [F, F, F, F, F, T]]
-    """
-    return data == padding
 
 if __name__ == "__main__":
     batch_size = 32

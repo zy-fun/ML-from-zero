@@ -6,6 +6,9 @@ import torch.nn.functional as F
 class:
     FeedForward(self, d_model, d_hidden)
     LayerNorm(self, d_model, eps)
+
+function:
+    get_padding_mask(self, data, padding)
 '''
 
 # two linear layers with one relu
@@ -54,6 +57,18 @@ class LayerNorm(nn.Module):
 
         out = out * self.gamma + self.beta
         return out
+    
+def get_padding_mask(self, data, padding=-1):
+    """
+        generate a mask to mask padding elements
+        input:  [[1, 2, 3, -1, -1, -1],
+                 [4, 1, -1, -1, -1, -1],
+                 [5, 1, 2, 4, 1, -1]]
+        output: [[F, F, F, T, T, T],
+                 [F, F, T, T, T, T],
+                 [F, F, F, F, F, T]]
+    """
+    return data == padding
         
 if __name__ == "__main__":
     # layernorm testing
