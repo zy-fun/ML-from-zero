@@ -8,7 +8,8 @@ class:
     LayerNorm(self, d_model, eps)
 
 function:
-    get_padding_mask(self, data, padding)
+    get_padding_mask(data, padding)
+    get_decoder_mask(data)
 '''
 
 # two linear layers with one relu
@@ -58,32 +59,55 @@ class LayerNorm(nn.Module):
         out = out * self.gamma + self.beta
         return out
     
-def get_padding_mask(self, data, padding=-1):
+def get_padding_mask(data, padding=-1):
     """
         generate a mask to mask padding elements
-        input:  [[1, 2, 3, -1, -1, -1],
-                 [4, 1, -1, -1, -1, -1],
-                 [5, 1, 2, 4, 1, -1]]
-        output: [[F, F, F, T, T, T],
-                 [F, F, T, T, T, T],
-                 [F, F, F, F, F, T]]
+        input: (B, T)
+        output: (B, T, T)
+        e.g:
+            input:  [[1, 2, 3, -1, -1]]
+            output: [[F, F, F, T, T], 
+                    [F, F, F, T, T],
+                    [F, F, F, T, T],
+                    [T, T, T, T, T],
+                    [T, T, T, T, T]]
     """
-    return data == padding
+    B, T = data.shape
+    
+    padding_mask = torch.zeros((B, T, T), dtype=torch.bool, device=data.device)
+    
+
+    return padding_mask
         
 if __name__ == "__main__":
+    layernormtest = False
+    ffntest = False
+    mask_test = True
+
     # layernorm testing
-    device = 'cuda'
-    x = torch.tensor([[1, 2, 3],
-                      [4, 8, 12]], dtype=torch.float32).to(device)
-    rewrited_layernorm = LayerNorm(3, 1e-5).to(device)
-    rewrited_out = rewrited_layernorm(x)
-    torch_layernorm = nn.LayerNorm(x.shape[-1]).to(device)
-    torch_out = torch_layernorm(x)
-    print(rewrited_out)
-    print(torch_out)
+    if layernormtest:
+        device = 'cuda'
+        x = torch.tensor([[1, 2, 3],
+                        [4, 8, 12]], dtype=torch.float32).to(device)
+        rewrited_layernorm = LayerNorm(3, 1e-5).to(device)
+        rewrited_out = rewrited_layernorm(x)
+        torch_layernorm = nn.LayerNorm(x.shape[-1]).to(device)
+        torch_out = torch_layernorm(x)
+        print(rewrited_out)
+        print(torch_out)
 
     # feedforward testing
-    feedforward = FeedForward(x.shape[-1], 2).to(device)
-    out = feedforward(x)
-    print(out)
-    print(out.shape)
+    if ffntest:
+        device = 'cuda'
+        feedforward = FeedForward(x.shape[-1], 2).to(device)
+        out = feedforward(x)
+        print(out)
+        print(out.shape)
+
+    if mask_test:
+        device = 'cuda'
+        x = torch.tensor([[1, 2, 3, -1, -1],
+                          [1, -1, -1, -1, -1]]).to(device)
+        padding_mask = get_padding_mask(x, -1)
+        print(x)
+        print(padding_mask)
