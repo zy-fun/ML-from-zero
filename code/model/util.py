@@ -86,7 +86,7 @@ def get_sequence_mask(data):
     """
         generate a mask to ensure one-direction attention
         input: (B, T)
-        output: (B, T, T)
+        output: (1, T, T), works by broadcasting
         e.g:
             input: [[1, 2, 3, 4, 5]]
             output: [[F, T, T, T, T],
@@ -99,7 +99,11 @@ def get_sequence_mask(data):
             The second token can see itself and one more token ahead.
             The last token can see all the tokens ahead and itself.
     """
-    pass
+    B, T = data.shape
+    mask = torch.triu(torch.ones((1, T, T), 
+                                  dtype=torch.bool, 
+                                  device=data.device), diagonal=1)
+    return mask
         
 if __name__ == "__main__":
     layernormtest = False
@@ -126,10 +130,12 @@ if __name__ == "__main__":
         print(out)
         print(out.shape)
 
+    # mask test
     if mask_test:
         device = 'cuda'
         x = torch.tensor([[1, 2, 3, -1, -1],
                           [1, -1, -1, -1, -1]]).to(device)
         padding_mask = get_padding_mask(x, -1)
-        print(x)
-        print(padding_mask)
+        sequence_mask = get_sequence_mask(x)
+        mask = padding_mask | sequence_mask
+        print(mask)
