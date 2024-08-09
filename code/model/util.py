@@ -67,17 +67,39 @@ def get_padding_mask(data, padding=-1):
         e.g:
             input:  [[1, 2, 3, -1, -1]]
             output: [[F, F, F, T, T], 
-                    [F, F, F, T, T],
-                    [F, F, F, T, T],
-                    [T, T, T, T, T],
-                    [T, T, T, T, T]]
+                     [F, F, F, T, T],
+                     [F, F, F, T, T],
+                     [T, T, T, T, T],
+                     [T, T, T, T, T]]
     """
     B, T = data.shape
-    
-    padding_mask = torch.zeros((B, T, T), dtype=torch.bool, device=data.device)
-    
+
+    actual_length = torch.sum(data != padding, dim=-1)
+    padding_mask = torch.ones((B, T, T), dtype=torch.bool, device=data.device)
+    for i in range(B):
+        L = actual_length[i]
+        padding_mask[i, :L, :L] = False
 
     return padding_mask
+
+def get_sequence_mask(data):
+    """
+        generate a mask to ensure one-direction attention
+        input: (B, T)
+        output: (B, T, T)
+        e.g:
+            input: [[1, 2, 3, 4, 5]]
+            output: [[F, T, T, T, T],
+                     [F, F, T, T, T],
+                     [F, F, F, T, T],
+                     [F, F, F, F, T],
+                     [F, F, F, F, F]]
+        explaination:
+            The first token (corresponds to the first row), can only see itself.
+            The second token can see itself and one more token ahead.
+            The last token can see all the tokens ahead and itself.
+    """
+    pass
         
 if __name__ == "__main__":
     layernormtest = False

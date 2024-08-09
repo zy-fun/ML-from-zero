@@ -32,15 +32,24 @@ eps = cfg['eps']
 device = cfg['device']
 
 if __name__ == "__main__":
-    model = Transformer(N, vocab_size, d_model, d_ff, num_head, dropout=dropout).to(device)
-    tokenizer = tiktoken.get_encoding("cl100k_base")
+    tokenizer = tiktoken.get_encoding("gpt2")
     text = """Text-to-image models offer unprecedented freedom to guide creation through natural language. Yet, it is unclear how such freedom can be exercised to generate images of specific unique concepts, modify their appearance, or compose them in new roles and novel scenes. In other words, we ask: how can we use language-guided models to turn our cat into a painting, or imagine a new product based on our favorite toy? Here we present a simple approach that allows such creative freedom. Using only 3-5 images of a user-provided concept, like an object or a style, we learn to represent it through new "words" in the embedding space of a frozen text-to-image model. These "words" can be composed into natural language sentences, guiding personalized creation in an intuitive way. Notably, we find evidence that a single word embedding is sufficient for capturing unique and varied concepts. We compare our approach to a wide range of baselines, and demonstrate that it can more faithfully portray the concepts across a range of applications and tasks.
-Our code, data and new words will be available at: this https URL"""
-    data = tokenizer.encode(text)
+Our code, data and new words will be available at""" + "<|endoftext|>"
+    data = tokenizer.encode(text, allowed_special={'<|endoftext|>'})
+    print(tokenizer.decode(data[:40]))
     mapper = TokenMapper(data)
     mapper.append(data)
     data = mapper.encode(data)
     data = torch.tensor(data, dtype=torch.int64, device=device)
-    print(data.shape)
+    print(len(mapper))
+
+    model = Transformer(N, 
+                        vocab_size=len(mapper), 
+                        d_model=d_model, 
+                        d_ff=d_ff, 
+                        num_head=num_head, 
+                        dropout=dropout).to(device)
+    print(sum(p.numel() for p in model.parameters()))
     for epoch in tqdm(range(num_epoch)):
+        
         pass
