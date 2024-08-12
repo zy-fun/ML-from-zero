@@ -9,7 +9,7 @@ class:
 
 function:
     get_padding_mask(data, padding)
-    get_decoder_mask(data)
+    get_sequence_mask(data)
 '''
 
 # two linear layers with one relu
