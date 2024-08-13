@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 
 """
 class:
-    StockDataset(dirname)
+    StockDataset(dirname, start, end, blocksize)
 
 function:
     download_stock(dirname)
@@ -26,14 +26,17 @@ class StockDataset(Dataset):
                 ...
                 sz301608.csv
     """
-    def __init__(self, dirname, blocksize=100):
+    def __init__(self, dirname, start = 0, end = 1, blocksize=100):
         super().__init__()
         self.dirname = dirname
         self.stock_list = pd.read_csv(os.path.join(dirname, 'stock_list.csv'))
-        self.symbols = self.stock_list['代码'].tolist()[:100]
+
+        # filter data out of range(start, end)
+        self.stock_list = self.stock_list.iloc[int(start * len(self.stock_list)) : 
+                                               int(end * len(self.stock_list))]
+        self.symbols = self.stock_list['代码'].tolist()
         self.blocksize = blocksize
         
-        # self.data = np.array([[] for _ in range(4)])
         self.data = []
         for i, symbol in enumerate(tqdm(self.symbols, desc="loading dataset")):
             # load dataframe from csv
@@ -45,17 +48,14 @@ class StockDataset(Dataset):
 
             # insert seperator
             self.data.append(np.array([[0.0] for _ in range(4)]))
-        self.data = np.concatenate(self.data, axis=-1)
+        self.data = torch.tensor(np.concatenate(self.data, axis=-1), device='cuda')
 
     def __len__(self):
-        return len(self.symbols)
+        return self.data.shape[1] - self.blocksize
 
     def __getitem__(self, idx):
-        if self.data[idx] is None:
-            symbol = self.symbols[idx]
-            stock = pd.read_csv(os.path.join(dirname, f"{symbol}.csv"))
-            self.data[idx] = stock['开盘']
-        return self.data[idx]
+        assert idx < len(self)
+        return self.data[:, idx: idx + self.blocksize], self.data[:, idx + 1: idx + self.blocksize + 1]
 
 def download_stock(dirname='./dataset'):
     """
@@ -86,17 +86,11 @@ if __name__ == "__main__":
 
     # download_stock(dirname)
 
-    ratios = [.9, .05, .05]
-    dataset = StockDataset(dirname)
-    import torch
-    from torch.utils.data import random_split
-    torch.manual_seed(42)
-    train, val, test = random_split(dataset, ratios)
-
-    print(len(dataset))
-    print(len(train), len(val), len(test))
-
-    train = DataLoader(train, batch_size=32, shuffle=True)
-    for batch in train:
-        print(batch)
-        exit()
+    start = 0
+    end = 0.01
+    dataset = StockDataset(dirname, start, end)
+    train = DataLoader(dataset, batch_size=1000, shuffle=False)
+    for i, (data_x, data_y) in enumerate(train):
+        continue
+    print(data_x)
+    print(data_y)
