@@ -1,13 +1,15 @@
 import akshare as ak
 import os
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import pdb
-from torch.utils.data import Dataset
+import torch
+from torch.utils.data import Dataset, DataLoader
 
 """
 class:
-    StockDataset(dirname, lazy_load)
+    StockDataset(dirname)
 
 function:
     download_stock(dirname)
@@ -19,22 +21,31 @@ class StockDataset(Dataset):
 
         Structure of data:
             dataset/
-            stock_list.csv
-            bj430017.csv
-            ...
-            sz301608.csv
+                stock_list.csv
+                bj430017.csv
+                ...
+                sz301608.csv
     """
-    def __init__(self, dirname, lazy_load=True):
+    def __init__(self, dirname, blocksize=100):
         super().__init__()
         self.dirname = dirname
         self.stock_list = pd.read_csv(os.path.join(dirname, 'stock_list.csv'))
-        self.symbols = self.stock_list['代码'].tolist()
+        self.symbols = self.stock_list['代码'].tolist()[:100]
+        self.blocksize = blocksize
         
-        self.data = [None for _ in range(len(self.symbols))]
-        if not lazy_load:
-            for i, symbol in enumerate(self.symbols):
-                stock = pd.read_csv(os.path.join(dirname, f"{symbol}.csv"))
-                self.data[i] = stock
+        # self.data = np.array([[] for _ in range(4)])
+        self.data = []
+        for i, symbol in enumerate(tqdm(self.symbols, desc="loading dataset")):
+            # load dataframe from csv
+            stock_df = pd.read_csv(os.path.join(dirname, f"{symbol}.csv"))
+
+            # fetch price column and convert dataframe to numpy array
+            stock_np = stock_df[['开盘', '收盘', '最高', '最低']].to_numpy().T
+            self.data.append(stock_np)
+
+            # insert seperator
+            self.data.append(np.array([[0.0] for _ in range(4)]))
+        self.data = np.concatenate(self.data, axis=-1)
 
     def __len__(self):
         return len(self.symbols)
@@ -43,7 +54,7 @@ class StockDataset(Dataset):
         if self.data[idx] is None:
             symbol = self.symbols[idx]
             stock = pd.read_csv(os.path.join(dirname, f"{symbol}.csv"))
-            self.data[idx] = stock
+            self.data[idx] = stock['开盘']
         return self.data[idx]
 
 def download_stock(dirname='./dataset'):
@@ -84,3 +95,8 @@ if __name__ == "__main__":
 
     print(len(dataset))
     print(len(train), len(val), len(test))
+
+    train = DataLoader(train, batch_size=32, shuffle=True)
+    for batch in train:
+        print(batch)
+        exit()
