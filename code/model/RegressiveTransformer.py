@@ -38,11 +38,18 @@ class RegressiveTransformer(nn.Module):
     """
         Transformer for regression task by changing Embedding and Softmax to MLP.
     """
-    def __init__(self, N, d_feature, d_model, d_hidden, num_head, max_seq_len=100, dropout=0.1, eps=1e-5):
+    def __init__(self, N, d_feature, d_model, d_hidden, num_head, dropout=0.1, eps=1e-5):
         super().__init__()
-        self.pos_emb = nn.Linear(1, d_model)
+        # It seens that the pos_emb could be one of the bottleneck, 
+        # I add one more Linear and the loss gets smaller.
+        self.pos_emb = nn.Sequential(
+            nn.Linear(1, d_model),
+            nn.Linear(d_model, d_model),
+        )
+        
         self.proj = nn.Sequential(
-            nn.Linear(d_feature, d_model)
+            nn.Linear(d_feature, d_model),
+            nn.Linear(d_model, d_model),
         )
 
         self.blocks = nn.ModuleList([
@@ -50,7 +57,8 @@ class RegressiveTransformer(nn.Module):
         ])
 
         self.reproj = nn.Sequential(
-            nn.Linear(d_model, d_feature)
+            nn.Linear(d_model, d_model),
+            nn.Linear(d_model, d_feature),
         )
 
     def forward(self, x, mask=None):
@@ -72,4 +80,39 @@ class RegressiveTransformer(nn.Module):
         return x
         
 if __name__ == "__main__":
-    pass
+    torch.manual_seed(42)
+
+    # 1. define model
+    N = 6
+    d_feature = 4
+    d_model = 32
+    d_ffn = 512
+    num_head = 8
+    device = 'cuda'
+    
+    model = RegressiveTransformer(N, d_feature, d_model, d_ffn, num_head).to(device)
+
+    # 2. define data
+    batch_size = 4
+    block_size = 100
+    data = torch.randn((batch_size, block_size + 1, d_feature), dtype=torch.float32).to(device)
+    x = data[:, :block_size, :]
+    y = data[:, 1:, :]
+
+    # 3. forward and backward
+    max_iter = 2000
+    lr = 8e-4
+    mask = torch.triu(torch.ones((1, block_size, block_size), 
+                                  dtype=torch.bool), diagonal=1).to(device)
+    model.train()
+    import torch.optim as optim; optimizer = optim.Adam(model.parameters(), lr=lr)
+    for i in range(max_iter): 
+        optimizer.zero_grad()           # clear the grad
+        output = model(x, mask)         # forward
+        loss = F.mse_loss(output, y)    # compute loss
+        loss.backward()                 # backward and compute the grad
+        optimizer.step()                # update model
+        print(f"loss: {loss}")
+    
+    print(output[0, :5])
+    print(y[0, :5])
