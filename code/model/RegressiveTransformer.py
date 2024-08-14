@@ -38,32 +38,35 @@ class RegressiveTransformer(nn.Module):
     """
         Transformer for regression task by changing Embedding and Softmax to MLP.
     """
-    def __init__(self, N, d_model, d_hidden, num_head, max_seq_len=100, dropout=0.1, eps=1e-5):
+    def __init__(self, N, d_feature, d_model, d_hidden, num_head, max_seq_len=100, dropout=0.1, eps=1e-5):
         super().__init__()
         self.pos_emb = nn.Linear(1, d_model)
-        self.proj = nn.ModuleList([
-            nn.Linear(1, d_model)
-        ])
+        self.proj = nn.Sequential(
+            nn.Linear(d_feature, d_model)
+        )
 
         self.blocks = nn.ModuleList([
             RegressiveTransformerBlock(d_model, d_hidden, num_head, dropout, eps) for _ in range(N)
         ])
 
-        self.reproj = nn.ModuleList([
-            nn.Linear(d_model, 1)
-        ])
+        self.reproj = nn.Sequential(
+            nn.Linear(d_model, d_feature)
+        )
 
     def forward(self, x, mask=None):
-        # input: (B, T)
+        # input: (B, T, d_feature)
+        B, T, _ = x.shape
 
-        # pos = self.
+        pos = torch.arange(0, T, step=1, dtype=x.dtype, device=x.device)    # (T,)
+        pos = self.pos_emb(pos.unsqueeze(-1))   # (T, C)
+
         # (B, T, C)
-        x = self.proj(x)
+        x = self.proj(x) + pos.unsqueeze(0)
 
         for block in self.blocks:
-            x = self.block(x, mask)
+            x = block(x, mask)
         
-        # (B, T, 1)
+        # (B, T, d_feature)
         x = self.reproj(x)
         
         return x
