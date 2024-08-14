@@ -48,7 +48,7 @@ class StockDataset(Dataset):
 
             # insert seperator
             self.data.append(np.array([[0.0] for _ in range(4)]))
-        self.data = torch.tensor(np.concatenate(self.data, axis=-1), device='cuda')
+        self.data = torch.tensor(np.concatenate(self.data, axis=-1), device='cuda').float()
 
     def __len__(self):
         return self.data.shape[1] - self.blocksize
@@ -92,5 +92,5 @@ if __name__ == "__main__":
     train = DataLoader(dataset, batch_size=1000, shuffle=False)
     for i, (data_x, data_y) in enumerate(train):
         continue
-    print(data_x)
+    print(data_x.shape)
     print(data_y)
