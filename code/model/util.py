@@ -9,7 +9,7 @@ class:
 
 function:
     get_padding_mask(data, padding)
-    get_sequence_mask(data)
+    get_sequence_mask(T)
 '''
 
 # two linear layers with one relu
@@ -82,13 +82,13 @@ def get_padding_mask(data, padding=-1):
 
     return padding_mask
 
-def get_sequence_mask(data):
+def get_sequence_mask(T):
     """
         generate a mask to ensure one-direction attention
-        input: (B, T)
+        input: T
         output: (1, T, T), works by broadcasting
         e.g:
-            input: [[1, 2, 3, 4, 5]]
+            input: 5
             output: [[F, T, T, T, T],
                      [F, F, T, T, T],
                      [F, F, F, T, T],
@@ -99,10 +99,8 @@ def get_sequence_mask(data):
             The second token can see itself and one more token ahead.
             The last token can see all the tokens ahead and itself.
     """
-    B, T = data.shape
     mask = torch.triu(torch.ones((1, T, T), 
-                                  dtype=torch.bool, 
-                                  device=data.device), diagonal=1)
+                                  dtype=torch.bool), diagonal=1)
     return mask
         
 if __name__ == "__main__":
